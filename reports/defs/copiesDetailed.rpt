@@ -1,0 +1,100 @@
+.title copiesDetailed
+.category "Cataloging"
+.layout labels title="Labels"
+.column copyid hidden
+.column bibid hidden
+.column barcode_nmbr title="Barcode" sort=barcode_nmbr
+.column status_begin_dt sort=status_begin_dt
+.column callno title="Call Num." sort=callno
+.column author title=Author sort=author
+.column title func=biblio_link title=Title sort=title
+.column collection sort=collection
+.column last_mail_dt title="Last Mail Date" sort=last_mail_dt
+.column status sort=status
+.column late sort=late
+.column fine sort=fine
+.column mbrid sort=mbrid func=member_link
+.parameters
+.	string barcode title="Barcode Starts With"
+.	string barcodes title="List of Barcodes (spaced)"
+.	date newer title="Newer than (Date or today)"
+.       date status_dt title="Status newer than (Date or today)"
+.       select collection title="Collection"
+.               item ""
+.               sql
+                        select coll.code as value, coll.description as title from collection_dm coll order by coll.description asc
+.               end sql
+.       end select
+.       select material title="Material"
+.               item ""
+.               sql
+                        select mat.code as value, mat.description as title from material_type_dm mat
+.               end sql
+.       end select
+.       select status title="Status"
+.               item ""
+.               sql
+                        select st.code as value, st.description as title from biblio_status_dm st
+.               end sql
+.       end select
+.	order_by default=barcode_nmbr
+.		item barcode_nmbr title="Barcode"
+.		item title title="Title"
+.		item author
+.		item status
+.		item collection
+.		item callno
+.		item last_mail_dt
+.		item status_begin_dt
+.		item fine type=numeric
+.		item late type=numeric
+.		item mbrid type=numeric
+.	end order_by
+.end parameters
+
+.sql
+	select c.*, concat_ws(' ', b.call_nmbr1, b.call_nmbr2, b.call_nmbr3) callno,
+		b.title, b.author, coll.description collection, bsd.description status,
+		(SELECT a.amount
+			FROM biblio_status_hist h, member_account a
+			WHERE h.status_begin_dt=c.status_begin_dt
+			AND h.status_begin_dt=a.create_dt
+			AND h.mbrid=a.mbrid
+		) AS late,
+		(SELECT SUM(a.amount)
+			FROM biblio_status_hist h, member_account a
+			WHERE h.status_begin_dt=c.status_begin_dt
+			AND h.mbrid=a.mbrid
+		) AS fine,
+                (SELECT h.mbrid
+			FROM biblio_status_hist h
+			WHERE h.status_begin_dt=c.status_begin_dt
+		) AS mbrid
+	from biblio_copy c, biblio b, collection_dm coll, biblio_status_dm bsd
+	where b.bibid=c.bibid and coll.code=b.collection_cd
+		and c.status_cd=bsd.code
+.	if_set barcode
+		and c.barcode_nmbr like '%"barcode%%%'
+.	end if_set
+.	if_set barcodes
+		and (0=1
+.		foreach_word barcodes
+			or c.barcode_nmbr=%barcodes%
+.		end foreach_word
+		)
+.	end if_set
+.       if_not_equal collection ""
+                and b.collection_cd = %collection%
+.       end if_not_equal
+.	if_set newer
+		and c.create_dt >= %newer%
+.	end if_set
+.       if_set status_dt
+                and c.status_begin_dt >= %status_dt%
+.       end if_set
+.	if_not_equal status ""
+               and c.status_cd = %status%
+.       end if_not_equal
+
+.	order_by_expr
+.end sql

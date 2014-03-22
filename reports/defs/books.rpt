@@ -1,0 +1,91 @@
+.title books
+.category Cataloging
+.column bibid hidden
+.column callno sort=callno func=biblio_edit_link title="Call Num."
+.column title sort=title func=biblio_link title="Title"
+.column title_remainder title="Remainder" hidden
+.column author sort=author title="Author"
+.column create_dt sort=create_dt title="Create Date"
+.column collection sort=collection title="Collection"
+.column material sort=material title="Material" hidden
+.column copies title="No of Copies" sort=copies
+.column nlcopies title="Not Lost Copies" sort=nlcopies
+.parameters
+.	string callno title="Call No."
+.	string title title="Title"
+.	string author title="Author"
+.	string copies title="List of No of copies"
+.	string nlcopies title="Not Lost Copies"
+.	select collection title="Collection"
+.		item ""
+.		sql
+			select coll.code as value, coll.description as title from collection_dm coll order by coll.description asc
+.		end sql
+.	end select
+.	select material title="Material"
+.		item ""
+.		sql
+			select mat.code as value, mat.description as title from material_type_dm mat
+.		end sql
+.	end select
+.	order_by
+.		item create_dt type=date
+.		item title
+.		item author
+.		item callno
+.		item copies title="No of Copies"
+.		item nlcopies title="Not Lost Copies"
+.	end order_by
+.end parameters
+
+.sql	
+	SELECT bibid, title, title_remainder, author, call_nmbr1 callno, create_dt,
+		coll.description as collection, mat.description as material,
+		(SELECT count(*) 
+			FROM biblio_copy 
+			WHERE biblio_copy.bibid=b.bibid
+		) AS copies,
+		(SELECT count(*) 
+			FROM biblio_copy 
+			WHERE biblio_copy.bibid=b.bibid
+				AND biblio_copy.status_cd != 'lst'
+		) AS nlcopies
+	FROM biblio b,
+		collection_dm coll, material_type_dm mat
+	WHERE
+		mat.code=b.material_cd
+		and coll.code=b.collection_cd
+.	if_not_equal collection ""
+		and b.collection_cd = %collection%
+.	end if_not_equal
+.	if_not_equal material ""
+		and b.material_cd = %material%
+.	end if_not_equal
+.       if_set callno
+		and b.call_nmbr1 like '%"callno%%%'
+.       end if_set
+.       if_set title
+                and b.title like '%"title%%%'
+.       end if_set
+.       if_set author
+		and b.author like '%"author%%%'
+.       end if_set
+.       if_set copies
+                AND (0=1
+.               foreach_word copies
+                       OR '%"copies%%%' IN (SELECT count(*) FROM biblio_copy WHERE biblio_copy.bibid=b.bibid)
+.               end foreach_word
+                )
+.       end if_set
+.       if_set nlcopies
+                AND (0=1
+.               foreach_word nlcopies
+                        OR '%"nlcopies%%%' IN (SELECT count(*) 
+				FROM biblio_copy 
+				WHERE biblio_copy.bibid=b.bibid
+				AND biblio_copy.status_cd!='lst')
+.               end foreach_word
+                )       
+.       end if_set
+.	order_by_expr
+.end sql

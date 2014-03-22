@@ -1,0 +1,59 @@
+.title "Periodic Checkin/Checkout Count"
+.category Statistics
+.column cycle title="Cycle"
+.column checkoutCount title="# Checkouts"
+.column checkinCount title="# Checkins"
+.column renewCount title="# Renewal"
+.parameters
+.	select timespan default=day title="Time Span"
+.		item day title="Day"
+.		item week title="Week"
+.		item month title="Month"
+.		item quarter title="Quarter"
+.		item year title="Year"
+.		item total title="Total"
+.	end select
+.       select collection title="Collection"
+.               item ""
+.               sql
+                        select coll.code as value, coll.description as title from collection_dm coll order by coll.description asc
+.               end sql
+.       end select
+.end parameters
+.sql
+.	if_equal timespan day
+		SELECT DATE_FORMAT((biblio_status_hist.status_begin_dt),
+			'%%Y %%m %%d') cycle,
+.	end if_set
+.	if_equal timespan week
+		SELECT DATE_FORMAT((biblio_status_hist.status_begin_dt),
+			'%%x %%v') cycle,
+.	end if_set
+.	if_equal timespan month
+		SELECT DATE_FORMAT((biblio_status_hist.status_begin_dt),
+			'%%Y %%m') cycle,
+.	end if_set
+.	if_equal timespan quarter
+		SELECT CONCAT(YEAR(biblio_status_hist.status_begin_dt),
+			' ', QUARTER(biblio_status_hist.status_begin_dt)) cycle,
+.	end if_set
+.	if_equal timespan year
+		SELECT YEAR(biblio_status_hist.status_begin_dt) cycle,
+.	end if_set
+.	if_equal timespan total
+		SELECT 'Total' AS cycle,
+.	end if_set
+        COUNT(IF(biblio_status_hist.status_cd='out' AND biblio_status_hist.renewal_count=0, 1, NULL)) AS checkoutCount,
+	COUNT(IF(biblio_status_hist.status_cd='crt', 1, NULL)) AS checkinCount,
+	COUNT(IF(biblio_status_hist.renewal_count!=0, 1, NULL)) AS renewCount
+	FROM biblio_copy, biblio_status_hist, biblio b
+	WHERE biblio_copy.bibid = biblio_status_hist.bibid
+		AND biblio_copy.copyid = biblio_status_hist.copyid
+		AND biblio_status_hist.status_cd != 'hld'
+		AND biblio_status_hist.mbrid != 0
+		AND biblio_copy.bibid=b.bibid
+.       if_not_equal collection ""
+                and b.collection_cd = %collection%
+.       end if_not_equal
+	GROUP BY cycle
+.end sql

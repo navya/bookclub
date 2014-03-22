@@ -1,0 +1,39 @@
+.title "Account History"
+.category "Account Statistics"
+.column mbrid hidden
+.column transid hidden
+.column roll_no sort=role_no func=member_link
+.column member sort=member func=member_link
+.column date sort=date
+.column transType sort=transType
+.column description sort=description
+.column amount sort=amount
+.parameters
+.	string rollNos title='List of Roll Nos'
+.	date newer_than title="Newer than (Date or today)"
+.	date older_than title="Older than (Date or today)"
+.	order_by default=checkout
+.		item roll_no expr='barcode_nmbr'
+.		item member expr='CONCAT(m.last_name, m.first_name,a.transid)'
+.		item date expr='a.create_dt'
+.		item transType expr='d.description'
+.		item amount expr='a.amount' type=numeric
+.		item description expr='a.description'
+.	end order_by
+.end parameters
+.sql
+	SELECT m.mbrid, m.barcode_nmbr AS roll_no, CONCAT(m.last_name,', ',  m.first_name) AS member,
+		d.description AS transType,
+		a.transid, a.create_dt AS date, a.amount, a.description
+	FROM member m, member_account a, transaction_type_dm d
+	WHERE   a.mbrid=m.mbrid
+		AND d.code=a.transaction_type_cd
+.	if_set roll_no
+		and (0=1
+.		foreach_word roll_no
+			or m.barcode_nmbr=%roll_no%
+.		end foreach_word
+		)
+.	end if_set
+.	order_by_expr
+.end sql

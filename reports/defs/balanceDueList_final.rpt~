@@ -1,0 +1,43 @@
+.title balanceDueListFinal
+.category Circulation
+.column mbrid hidden
+.column barcode_nmbr sort=barcode_nmbr
+.column name sort=name func=member_link
+.column email sort=email
+.column slots sort=slots
+.column balance sort=balance
+.parameters
+.	string minimum title="Minimum balance"
+.	string mbr_barcodes title="List of Member Barcodes (spaced)"
+.	order_by
+.		item barcode_nmbr
+.		item name expr="concat(m.first_name, ' ', m.last_name)"
+.		item balance type=numeric
+.		item email
+.		item slots
+.	end order_by
+.	string mbr_barcode title="Roll no Starts With"
+.end parameters
+.sql
+	select m.mbrid, m.barcode_nmbr,
+		concat(m.first_name, ' ', m.last_name) name,
+		sum(acct.amount) balance,
+		m.email, mc.description slots
+	from member m, member_account acct, mbr_classify_dm mc
+	where m.mbrid=acct.mbrid, m.classification=mc.code
+	group by m.mbrid, m.barcode_nmbr, m.last_name, m.first_name
+.	if_set minimum
+		having balance >= %#minimum%
+.	end if_set
+.	if_set mbr_barcode
+		having m.barcode_nmbr LIKE '%"mbr_barcode%%%'
+.	end if_set
+.	if_set mbr_barcodes
+		having (0=1
+.		foreach_word mbr_barcodes
+			OR m.barcode_nmbr=%mbr_barcodes%
+.		end foreach_word
+		)
+.	end if_set
+.	order_by_expr
+.end sql

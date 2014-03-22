@@ -1,0 +1,33 @@
+.title repeatedRequests
+.category Cataloging
+.column rreqid
+.column breqid 
+.column rtitle
+.column btitle
+.column rauthor
+.column bauthor
+.parameters
+.	string title title="Title"
+.	string author title="Author"
+.	order_by
+.		item rtitle
+.		item rauthor
+.		item btitle
+.		item bauthor
+.	end order_by
+.end parameters
+
+.sql	
+	SELECT rb.title AS btitle, rb.author AS bauthor, rb.reqid AS breqid,
+		r.title AS rtitle, r.author AS rauthor, r.reqid AS rreqid
+	FROM rrequests rb, rrequests r
+	WHERE Lower(rb.title) = Lower(r.title)
+		AND rb.reqid > r.reqid
+.       if_set title
+                and b.title like '%"title%%%'
+.       end if_set
+.       if_set author
+		and b.author like '%"author%%%'
+.       end if_set
+.	order_by_expr
+.end sql

@@ -1,0 +1,210 @@
+.title  membersDetailed
+.category "Member Statistics"
+.layout mbr_cards_10up title="Cards"
+.layout mbr_cards_3up title="ID Cards, self-laminating"
+.layout mbr_labels title="Labels"
+.column mbrid hidden
+.column barcode_nmbr title="Barcode" sort=barcode_nmbr
+.column first_name hidden
+.column last_name hidden
+.column name title="Name" sort=name func=member_link
+.column email title="Email" sort=email
+.column address title="Address" sort=address
+.column work_phone hidden
+.column create_dt title="Create Date" sort=create_dt
+.column last_email_dt title="Last Email Date" sort=last_email_dt
+.column slots title="Slots" sort=slots
+.column copies title="Books" sort=copies
+.column balance sort=balance
+.column overdue sort="overdue"
+.column booksread sort="booksread"
+.column late_retrnd sort=late_retrnd
+.column total sort=total title="Total Payable Fine"
+.parameters
+.	string barcode title="Barcode Starts With"
+.	string barcodes title="List of Barcodes (spaced)"
+.	string name title="Name Contains"
+.	string address title="Address or Phone or Email Contains"
+.	string copies title="List of No of Books Borrowed"
+.	date newer title="Newer than (Date or today)"
+.       select slots title="Slots"
+.               item ""
+.               sql
+                        select mc.code as value, mc.description as title from mbr_classify_dm mc order by mc.description asc
+.               end sql
+.	end select
+.	select nodues title="Nodues"
+.		item ""
+.		item books_fine title="Having Fine OR Books"
+.		item fine title="Having Fine"
+.		item books title="Having Books"
+.		item b_f title="Having Fine AND Books"
+.		item f_nb title="Having Fine but No Books"
+.		item b_nf title="Having Books but No Fine"
+.		item nf_nb title="No Books and No Fine"
+.	end select
+.	string min_balance title="Min Balance"
+.	string max_balance title="Max Balance"
+.	order_by default=barcode_nmbr
+.		item barcode_nmbr title="Barcode"
+.		item name title="Name" expr="CONCAT(first_name, ' ', last_name)"
+.		item create_dt title="Create Date" type=date
+.		item email title="Email"
+.		item classification title="Slots"
+.		item address title="Address"
+.		item slots
+.		item last_email_dt type=date
+.		item copies type=numeric
+.		item balance type=numeric
+.		item overdue type=numeric
+.		item booksread type=numaric
+.		item late_retrnd type=numaric
+.		item total type=numaric
+.	end order_by
+.end parameters
+
+.sql
+	SELECT m.mbrid, m.barcode_nmbr, m.work_phone,
+		m.first_name, m.last_name,
+		concat(m.first_name, ' ', m.last_name) name,
+		m.address, m.create_dt, m.email, 
+		mc.description slots, m.last_email_dt,
+		(SELECT count(*)
+			FROM biblio_copy c
+			WHERE c.mbrid=m.mbrid
+		) AS copies,
+		(SELECT sum(a.amount)
+			FROM member_account a
+			WHERE a.mbrid=m.mbrid
+		) balance,
+		(SELECT sum(floor(to_days(now())-to_days(c.due_back_dt))) 
+			FROM biblio_copy c
+			WHERE c.mbrid=m.mbrid
+			AND floor(to_days(now())-to_days(c.due_back_dt)) > 0
+		) AS overdue,
+		IFNULL((SELECT sum(a.amount)
+			FROM member_account a
+			WHERE a.mbrid=m.mbrid
+		),0)+
+		IFNULL((SELECT sum(floor(to_days(now())-to_days(c.due_back_dt))) 
+			FROM biblio_copy c
+			WHERE c.mbrid=m.mbrid
+			AND floor(to_days(now())-to_days(c.due_back_dt)) > 0
+		),0) AS total,
+		(SELECT count(DISTINCT bibid, copyid)
+			FROM biblio_status_hist h
+			WHERE h.mbrid=m.mbrid
+			AND h.status_cd="out"
+			AND h.renewal_count=0
+		) AS booksread
+		FROM member m, mbr_classify_dm mc
+	WHERE mc.code=m.classification
+.	if_set barcode
+		AND barcode_nmbr LIKE '%"barcode%%%'
+.	end if_set
+.	if_set barcodes
+		AND (0=1
+.		foreach_word barcodes
+			OR barcode_nmbr=%barcodes%
+.		end foreach_word
+		)
+.	end if_set
+.       if_set copies
+                AND (0=1
+.               foreach_word copies
+			OR (SELECT count(*)
+			FROM biblio_copy
+			WHERE biblio_copy.mbrid=m.mbrid
+			)=%copies%
+.               end foreach_word
+                )
+.       end if_set
+.	if_set name
+		AND CONCAT(last_name, ', ', first_name) LIKE '%%%"name%%%'
+.	end if_set
+.	if_set address
+		AND CONCAT_WS(address, email, home_phone, work_phone) LIKE '%%%"address%%%'
+.	end if_set
+.	if_set newer
+		AND create_dt >= %newer%
+.	end if_set
+.       if_not_equal slots ""
+		AND classification = %slots%
+.       end if_set
+.       if_set min_balance
+                AND (SELECT sum(a.amount)
+			FROM member_account a
+			WHERE a.mbrid=m.mbrid
+		)>= %#min_balance%
+.       end if_set
+.       if_set max_balance
+                AND  (SELECT sum(a.amount)
+		        FROM member_account a
+			WHERE a.mbrid=m.mbrid
+		)<= %#max_balance%
+.       end if_set
+.	if_equal nodues b_f
+		AND IFNULL((SELECT sum(a.amount)
+			FROM member_account a
+		        WHERE a.mbrid=m.mbrid
+		 ),0) >= 1
+		AND IFNULL((SELECT count(*)
+	                FROM biblio_copy c
+		        WHERE c.mbrid=m.mbrid
+		),0) >= 1    
+.	end if_equal
+.	if_equal nodues nf_nb
+		AND IFNULL((SELECT sum(a.amount)
+			FROM member_account a
+		        WHERE a.mbrid=m.mbrid
+		 ),0) = 0
+		AND IFNULL((SELECT count(*)
+	                FROM biblio_copy c
+		        WHERE c.mbrid=m.mbrid
+		),0) = 0    
+.	end if_equal
+.	if_equal nodues f_nb
+		AND IFNULL((SELECT sum(a.amount)
+			FROM member_account a
+		        WHERE a.mbrid=m.mbrid
+		 ),0) >= 1
+		AND IFNULL((SELECT count(*)
+	                FROM biblio_copy c
+		        WHERE c.mbrid=m.mbrid
+		),0) = 0    
+.	end if_equal
+.	if_equal nodues b_nf
+		AND IFNULL((SELECT sum(a.amount)
+			FROM member_account a
+		        WHERE a.mbrid=m.mbrid
+		 ),0) = 0
+		AND IFNULL((SELECT count(*)
+	                FROM biblio_copy c
+		        WHERE c.mbrid=m.mbrid
+		),0) >= 1    
+.	end if_equal
+.	if_equal nodues books_fine
+	AND (
+		IFNULL((SELECT sum(a.amount)
+			 FROM member_account a
+			 WHERE a.mbrid=m.mbrid
+		),0) >= 1
+	OR      IFNULL((SELECT count(*)
+	        	FROM biblio_copy c
+			WHERE c.mbrid=m.mbrid
+		),0) >= 1
+	)
+.	end if_equal
+.	if_equal nodues books
+		having copies >= 1
+.	end if_equal
+.	if_equal nodues fine
+		having balance >= 1
+.	end if_equal
+.	if_not_equal nodues ""
+		AND m.barcode_nmbr NOT LIKE '0000%%'
+                AND m.barcode_nmbr NOT LIKE 'PPPP%%'
+                AND m.barcode_nmbr NOT LIKE 'ZPPPP%%'
+.	end if_not_equal
+.	order_by_expr
+.end sql
