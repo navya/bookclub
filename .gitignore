@@ -1,1 +1,3 @@
 database_constants.php
+database/*
+shared/mail_vars.php
