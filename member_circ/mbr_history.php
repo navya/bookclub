@@ -98,7 +98,7 @@
       <?php echo H($hist->getBiblioBarcodeNmbr());?>
     </td>
     <td class="primary" valign="top" >
-      <a href="../shared/biblio_view.php?bibid=<?php echo HURL($hist->getBibid());?>&amp;tab=cataloging"><?php echo H($hist->getTitle());?></a>
+      <a href="../shared/biblio_view.php?bibid=<?php echo HURL($hist->getBibid());?>&amp;tab=opac"><?php echo H($hist->getTitle());?></a>
     </td>
     <td class="primary" valign="top" >
       <?php echo H($hist->getAuthor());?>
