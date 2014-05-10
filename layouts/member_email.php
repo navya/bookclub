@@ -5,8 +5,6 @@
   require_once("../classes/BiblioCopy.php");
   require_once('../classes/MemberQuery.php');
   require_once('../classes/BiblioCopyQuery.php');
-  require_once "Mail.php";
-  require_once("../shared/mail_vars.php");
 
 class Layout_duedate_email {
   function render($rpt) {

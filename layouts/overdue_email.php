@@ -1,15 +1,11 @@
 <?php
 require_once('../classes/MemberQuery.php');
-require_once "Mail.php";
-require_once("../shared/mail_vars.php");
-
 class Layout_overdue_email {
   function render($rpt) {
     list($rpt, $errs) = $rpt->variant_el(array('order_by'=>'member'));
     if (!empty($errs)) {
       Fatal::internalError('Unexpected report error');
     }
-    
     $mbrQ = new MemberQuery;
     $mbr = NULL;
     $oldmbrid = NULL;

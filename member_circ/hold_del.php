@@ -7,8 +7,6 @@ require_once("../shared/common.php");
 require_once("../classes/BiblioCopyQuery.php");
 require_once("../classes/BiblioQuery.php");
 require_once("../classes/MemberQuery.php");
-require_once "Mail.php";
-require_once("../shared/mail_vars.php");
 
 #****************************************************************************
 #*  Checking for get vars.

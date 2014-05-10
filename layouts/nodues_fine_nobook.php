@@ -2,8 +2,6 @@
   require_once("../classes/Query.php");
   require_once("../classes/DmQuery.php");
   require_once("../functions/errorFuncs.php");
-  require_once "Mail.php";
-  require_once("../shared/mail_vars.php");
 class Layout_nodues_fine_nobook {
   function render($rpt) {
     list($rpt, $errs) = $rpt->variant_el(array('order_by'=>'member'));

@@ -16,8 +16,6 @@ require_once("../classes/Date.php");
 require_once("../functions/errorFuncs.php");
 require_once("../functions/formatFuncs.php");
 require_once("../classes/Localize.php");
-require_once "Mail.php";
-require_once("../shared/mail_vars.php");
 $loc = new Localize(OBIB_LOCALE,$tab);
 
 if (count($_GET) != 0) {

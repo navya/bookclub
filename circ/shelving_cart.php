@@ -12,8 +12,6 @@ require_once("../classes/BiblioQuery.php");
 require_once('../classes/MemberQuery.php');
 require_once('../classes/BiblioCopyQuery.php');
 require_once('../classes/BiblioHold.php');
-require_once "Mail.php";
-require_once("../shared/mail_vars.php");
 
 require_once("../functions/errorFuncs.php");
 require_once("../classes/CircQuery.php");
